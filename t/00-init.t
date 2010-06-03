@@ -48,3 +48,14 @@ use Ormlette;
   ], 'override root ormlette namespace with package param');
 }
 
+# restrict list of packages touched using tables param
+{
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do(my $sql1 = 'CREATE TABLE tbl_test ( id integer )');
+  $dbh->do(my $sql2 = 'CREATE TABLE ignore_me (id integer )');
+  my $egg = Ormlette->init($dbh, tables => [ 'tbl_test', 'bogus' ]);
+  is_deeply($egg->{tbl_data}, [
+    { tbl_name => 'tbl_test', pkg_name => 'main::TblTest', sql => $sql1 },
+  ], 'tables param causes non-listed tables to be ignored');
+}
+

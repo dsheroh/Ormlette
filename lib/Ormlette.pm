@@ -20,7 +20,7 @@ sub init {
 
   my $package = $params{package} || caller;
 
-  my $tbl_data = _scan_tables($dbh, $package);
+  my $tbl_data = _scan_tables($dbh, $package, %params);
 
   return bless {
     dbh         => $dbh,
@@ -29,11 +29,18 @@ sub init {
 }
 
 sub _scan_tables {
-  my ($dbh, $package) = @_;
+  my ($dbh, $package, %params) = @_;
 
-  my $table_sql = $dbh->selectall_arrayref(q(
-    SELECT tbl_name, sql FROM sqlite_master WHERE type = 'table'
-  ));
+  my $table_sql;
+  my $scan_sql =
+    q(SELECT tbl_name, sql FROM sqlite_master WHERE type = 'table');
+  if ($params{tables}) {
+    my @tbl_list = @{$params{tables}};
+    $scan_sql .= ' AND name IN (' . (join ', ', ('?') x @tbl_list) . ')';
+    $table_sql = $dbh->selectall_arrayref($scan_sql, undef, @tbl_list);
+  } else {
+    $table_sql = $dbh->selectall_arrayref($scan_sql);
+  }
 
   my @tables;
   for (@$table_sql) {
@@ -72,4 +79,10 @@ By default, Ormlette will use the name of the package which calls C<init> as
 the base namespace for its generated code.  If you want the code to be placed
 into a different namespace, use the C<package> parameter to override this
 default.
+
+=head2 tables
+
+If you only require Ormlette code to be generated for some of the tables in
+your database, providing a reference to a list of table names in the C<tables>
+parameter will cause all other tables to be ignored.
 
