@@ -18,7 +18,9 @@ sub init {
 
   $debug = 1 if $params{debug};
 
-  my $tbl_data = _scan_tables($dbh);
+  my $package = $params{package} || caller;
+
+  my $tbl_data = _scan_tables($dbh, $package);
 
   return bless {
     dbh         => $dbh,
@@ -27,7 +29,7 @@ sub init {
 }
 
 sub _scan_tables {
-  my $dbh = shift;
+  my ($dbh, $package) = @_;
 
   my $table_sql = $dbh->selectall_arrayref(q(
     SELECT tbl_name, sql FROM sqlite_master WHERE type = 'table'
@@ -38,7 +40,7 @@ sub _scan_tables {
     my @words = split '_', lc $_->[0];
     push @tables, {
       tbl_name  => $_->[0],
-      pkg_name  => (join '', map { ucfirst } @words),
+      pkg_name  => $package . '::' . (join '', map { ucfirst } @words),
       sql       => $_->[1],
     };
   }
@@ -63,4 +65,11 @@ connected to $dbh.  Recognized parameters:
 
 The C<debug> option will cause additional debugging information to be printed
 to STDERR as Ormlette does its initialization.
+
+=head2 package
+
+By default, Ormlette will use the name of the package which calls C<init> as
+the base namespace for its generated code.  If you want the code to be placed
+into a different namespace, use the C<package> parameter to override this
+default.
 

@@ -23,7 +23,7 @@ use Ormlette;
   my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
   my $egg = Ormlette->init($dbh);
   isa_ok($egg, 'Ormlette');
-  is($egg->{dbh}, $dbh, 'dbh stored in egg');
+  is($egg->{dbh}, $dbh, 'dbh stored in ormlette');
 }
 
 # identify tables and construct correct package names
@@ -33,8 +33,18 @@ use Ormlette;
   $dbh->do(my $sql2 = 'CREATE TABLE TEST_taBle_2 (id integer )');
   my $egg = Ormlette->init($dbh);
   is_deeply($egg->{tbl_data}, [
-    { tbl_name => 'test1', pkg_name => 'Test1', sql => $sql1 },
-    { tbl_name => 'TEST_taBle_2', pkg_name => 'TestTable2', sql => $sql2 },
+    { tbl_name => 'test1', pkg_name => 'main::Test1', sql => $sql1 },
+    { tbl_name => 'TEST_taBle_2', pkg_name => 'main::TestTable2', sql => $sql2 },
   ], 'found all tables and built package names');
+}
+
+# use 'package' param to override root egg namespace
+{
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do(my $sql = 'CREATE TABLE test_table ( id integer )');
+  my $egg = Ormlette->init($dbh, package => 'Egg');
+  is_deeply($egg->{tbl_data}, [
+    { tbl_name => 'test_table', pkg_name => 'Egg::TestTable', sql => $sql },
+  ], 'override root ormlette namespace with package param');
 }
 
