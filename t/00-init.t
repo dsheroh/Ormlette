@@ -18,11 +18,23 @@ use Ormlette;
   dies_ok { Ormlette->init(42) } 'init dies with invalid dbh param';
 }
 
-# Initialize from connected dbh
+# initialize from connected dbh
 {
-  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:');
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
   my $egg = Ormlette->init($dbh);
   isa_ok($egg, 'Ormlette');
   is($egg->{dbh}, $dbh, 'dbh stored in egg');
+}
+
+# identify tables and construct correct package names
+{
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do(my $sql1 = 'CREATE TABLE test1 ( id integer )');
+  $dbh->do(my $sql2 = 'CREATE TABLE TEST_taBle_2 (id integer )');
+  my $egg = Ormlette->init($dbh);
+  is_deeply($egg->{tbl_data}, [
+    { tbl_name => 'test1', pkg_name => 'Test1', sql => $sql1 },
+    { tbl_name => 'TEST_taBle_2', pkg_name => 'TestTable2', sql => $sql2 },
+  ], 'found all tables and built package names');
 }
 

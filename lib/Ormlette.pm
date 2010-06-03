@@ -1,6 +1,9 @@
 package Ormlette;
 # ABSTRACT: Light and fluffy object persistence
 
+use strict;
+use warnings;
+
 our $VERSION = 0.001000;
 
 use Carp 'croak';
@@ -15,9 +18,32 @@ sub init {
 
   $debug = 1 if $params{debug};
 
+  my $tbl_data = _scan_tables($dbh);
+
   return bless {
     dbh         => $dbh,
+    tbl_data    => $tbl_data,
   }, $class;
+}
+
+sub _scan_tables {
+  my $dbh = shift;
+
+  my $table_sql = $dbh->selectall_arrayref(q(
+    SELECT tbl_name, sql FROM sqlite_master WHERE type = 'table'
+  ));
+
+  my @tables;
+  for (@$table_sql) {
+    my @words = split '_', lc $_->[0];
+    push @tables, {
+      tbl_name  => $_->[0],
+      pkg_name  => (join '', map { ucfirst } @words),
+      sql       => $_->[1],
+    };
+  }
+
+  return \@tables;
 }
 
 1;
