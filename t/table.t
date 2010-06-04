@@ -200,3 +200,14 @@ use Ormlette;
   is_deeply($obj, $reload, 'update of loaded object reloaded');
 }
 
+# construct and save with ->create
+{
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do('CREATE TABLE test ( id integer primary key, my_txt char(10) )');
+  Ormlette->init($dbh, namespace => 'Create');
+
+  isa_ok(Create::Test->create(my_txt => 'created'), 'Create::Test');
+  is_deeply(Create::Test->load(1), { id => 1, my_txt => 'created' },
+    'reload object built with ->create');
+}
+

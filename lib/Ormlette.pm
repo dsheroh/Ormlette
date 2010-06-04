@@ -229,6 +229,11 @@ sub _ormlette_new {
   bless { \@_ }, \$class;
 }
 
+sub create {
+  my \$class = shift;
+  \$class->new(\@_)->insert;
+}
+
 sub insert {
   my \$self = shift;
 
@@ -322,6 +327,13 @@ this will return the handle corresponding to the most-recently constructed
 Ormlette.
 
 =head1 Table Class Methods
+
+=method create
+
+Constructs an object by calling C<new>, then uses C<insert> to immediately
+store it to the database.
+
+This method will not be generated if C<readonly> is set.
 
 =method dbh
 
