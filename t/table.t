@@ -16,7 +16,7 @@ use Ormlette;
 {
   my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
   $dbh->do('CREATE TABLE dbh_test ( id integer )');
-  my $egg = Ormlette->init($dbh, namespace => 'DBHTest');
+  Ormlette->init($dbh, namespace => 'DBHTest');
   is(DBHTest::DbhTest->dbh, $dbh, 'retrieve dbh via table class');
 }
 
@@ -25,7 +25,7 @@ use Ormlette;
   my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
   $dbh->do('CREATE TABLE first_tbl ( id integer )');
   $dbh->do('CREATE TABLE second_tbl (id integer )');
-  my $egg = Ormlette->init($dbh, namespace => 'TblName');
+  Ormlette->init($dbh, namespace => 'TblName');
   is(TblName::FirstTbl->table, 'first_tbl', 'first table name ok');
   is(TblName::SecondTbl->table, 'second_tbl', 'second table name ok');
 }
@@ -34,7 +34,7 @@ use Ormlette;
 {
   my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
   $dbh->do('CREATE TABLE test ( id integer )');
-  my $egg = Ormlette->init($dbh, namespace => 'BasicNew');
+  Ormlette->init($dbh, namespace => 'BasicNew');
   isa_ok(BasicNew::Test->new, 'BasicNew::Test');
   my $obj = BasicNew::Test->new(foo => 1, bar => 'baz');
   is_deeply($obj, { foo => 1, bar => 'baz' }, 'params accepted by ->new');
@@ -48,7 +48,7 @@ use Ormlette;
   package main;
   my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
   $dbh->do('CREATE TABLE test ( id integer )');
-  my $egg = Ormlette->init($dbh, namespace => 'NoOverride');
+  Ormlette->init($dbh, namespace => 'NoOverride');
   isa_ok(NoOverride::Test->new, 'Original');
 }
 
@@ -56,7 +56,7 @@ use Ormlette;
 {
   my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
   $dbh->do('CREATE TABLE test ( my_int integer, my_str varchar(10) )');
-  my $egg = Ormlette->init($dbh, namespace => 'SelectAll');
+  Ormlette->init($dbh, namespace => 'SelectAll');
 
   $dbh->do(q(INSERT INTO test (my_int, my_str) VALUES (7, 'seven')));
   is_deeply(SelectAll::Test->select, [ { my_int => 7, my_str => 'seven' } ],
@@ -76,7 +76,7 @@ use Ormlette;
 {
   my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
   $dbh->do('CREATE TABLE test ( my_int integer, my_str varchar(10) )');
-  my $egg = Ormlette->init($dbh, namespace => 'SelectCrit');
+  Ormlette->init($dbh, namespace => 'SelectCrit');
 
   $dbh->do(q(INSERT INTO test (my_int, my_str) VALUES (9, 'nine')));
   $dbh->do(q(INSERT INTO test (my_int, my_str) VALUES (42, 'answer')));
@@ -101,7 +101,7 @@ use Ormlette;
 {
   my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
   $dbh->do('CREATE TABLE test ( my_int integer, my_str varchar(10) )');
-  my $egg = Ormlette->init($dbh, namespace => 'SelectBless');
+  Ormlette->init($dbh, namespace => 'SelectBless');
 
   $dbh->do(q(INSERT INTO test (my_int, my_str) VALUES (12, 'twelve')));
   isa_ok(SelectBless::Test->select->[0], 'SelectBless::Test');
@@ -111,9 +111,49 @@ use Ormlette;
 {
   my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
   $dbh->do('CREATE TABLE test ( id integer )');
-  my $egg = Ormlette->init($dbh, namespace => 'ROMethods', readonly => 1);
+  Ormlette->init($dbh, namespace => 'ROMethods', readonly => 1);
   is(ROMethods::Test->can('new'), undef, 'no ->new with readonly');
   is(ROMethods::Test->can('_ormlette_new'), undef,
     'no ->_ormlette_new with readonly');
+}
+
+# create ->load method iff table has a primary key
+{
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do('CREATE TABLE keyed ( id integer primary key )');
+  $dbh->do('CREATE TABLE no_key ( id integer )');
+  Ormlette->init($dbh, namespace => 'KeyCheck');
+  is(ref KeyCheck::Keyed->can('load'), 'CODE',
+    'create ->load if primary key is present');
+  is(KeyCheck::NoKey->can('load'), undef, 'no ->load without primary key');
+}
+
+# retrieve records with ->load
+{
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do('CREATE TABLE keyed ( id integer primary key, my_txt char(10) )');
+  $dbh->do('CREATE TABLE multi_key
+    ( id1 integer, id2 integer, non_key text, PRIMARY KEY (id1, id2) )');
+  Ormlette->init($dbh, namespace => 'KeyLoad');
+
+  $dbh->do(q(INSERT INTO keyed (id, my_txt) VALUES ( 18, 'eighteen' )));
+  $dbh->do(q(INSERT INTO keyed (id, my_txt) VALUES ( 19, 'nineteen' )));
+  $dbh->do(q(INSERT INTO multi_key (id1, id2, non_key) VALUES ( 1, 2, 'tre')));
+  $dbh->do(q(INSERT INTO multi_key (id1, id2, non_key) VALUES ( 4, 5, 'six')));
+
+  my $obj = KeyLoad::Keyed->load(18);
+  isa_ok($obj, 'KeyLoad::Keyed');
+  is_deeply($obj, { id => 18, my_txt => 'eighteen' },
+    '->load with single-field key');
+  is(KeyLoad::Keyed->load(4), undef,
+    '->load with single-field key returns nothing on missing key');
+
+  undef $obj;
+  $obj = KeyLoad::MultiKey->load(4, 5);
+  isa_ok($obj, 'KeyLoad::MultiKey');
+  is_deeply($obj, { id1 => 4, id2 => 5, non_key => 'six' },
+    '->load with multi-field key');
+  is(KeyLoad::MultiKey->load(2, 'tre'), undef,
+    '->load with multi-field key returns nothing on missing key');
 }
 

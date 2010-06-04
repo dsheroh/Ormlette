@@ -38,7 +38,7 @@ sub dbh { $_[0]->{dbh} }
 sub _scan_tables {
   my ($dbh, $namespace, %params) = @_;
 
-  my @tables = $dbh->tables('%', 'main', '%', 'TABLE');
+  my @tables = $dbh->tables(undef, undef, undef, 'TABLE');
   if (my $quote_char = $dbh->get_info(29)) {
     for (@tables) {
       s/$quote_char$//;
@@ -178,6 +178,26 @@ sub _ormlette_load_from_sth {
 
 END_CODE
 
+  my @key = $self->dbh->primary_key(undef, undef, $tbl_name);
+  if (@key) {
+    my $key_criteria = join ' AND ', map { "$_ = ?" } @key;
+
+    $code .= <<"END_CODE";
+sub load {
+  my \$class = shift;
+
+  my \$sql = 'SELECT $select_fields FROM $tbl_name WHERE $key_criteria';
+  my \$sth = \$class->dbh->prepare_cached(\$sql);
+  \$sth->execute(\@_);
+
+  my \$obj = \$class->_ormlette_load_from_sth(\$sth);
+  \$sth->finish;
+
+  return \$obj;
+}
+END_CODE
+  }
+
   $code .= $self->_table_mutators($tbl_name, $field_list)
     unless $self->{readonly};
 
@@ -270,6 +290,15 @@ Basic constructor which accepts a hash of values and blesses them into the
 class.  If a ->new method has already been defined, it will not be replaced.
 If you wish to retain the default constructor functionality within your
 custom ->new method, you can call $class->_ormlette_new to do so.
+
+=method load(1, 2, 3)
+
+Retrieves a single object from the database based on its primary key value(s).
+If the table has a multi-field primary key, the values must be listed in the
+same order as the fields in the primary key declaration.  Returns undef if no
+matching record exists.
+
+This method will only be generated for tables which have a primary key.
 
 =method select
 =method select('WHERE id = 42');
