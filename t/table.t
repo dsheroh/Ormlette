@@ -157,3 +157,26 @@ use Ormlette;
     '->load with multi-field key returns nothing on missing key');
 }
 
+# add records with ->insert
+{
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do('CREATE TABLE no_key ( id integer, my_txt char(10) )');
+  $dbh->do('CREATE TABLE keyed ( id integer primary key, my_txt char(10) )');
+  Ormlette->init($dbh, namespace => 'Insert');
+
+  isa_ok(Insert::NoKey->new(id => 1, my_txt => 'foo')->insert, 'Insert::NoKey');
+  isa_ok(Insert::Keyed->new(id => 2, my_txt => 'bar')->insert, 'Insert::Keyed');
+
+  is_deeply(Insert::NoKey->new(id => 3, my_txt => 'baz')->insert,
+    { id => 3, my_txt => 'baz' }, 'correct return from keyless ->insert');
+  is_deeply(Insert::Keyed->new(id => 4, my_txt => 'wibble')->insert,
+    { id => 4, my_txt => 'wibble' }, 'correct return from keyed ->insert');
+  is_deeply(Insert::Keyed->new(my_txt => 'xyzzy')->insert,
+    { id => 5, my_txt => 'xyzzy' }, 'correct return from autokeyed ->insert');
+
+  is_deeply(Insert::NoKey->select('WHERE id = 3'),
+    [ { id => 3, my_txt => 'baz' } ], '->select inserted keyless record');
+  is_deeply(Insert::Keyed->load(5),
+    { id => 5, my_txt => 'xyzzy' }, '->load inserted autokey record');
+}
+

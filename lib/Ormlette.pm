@@ -208,11 +208,37 @@ sub _table_mutators {
   my ($self, $tbl_name, $field_list) = @_;
   my $pkg_name = $self->{tbl_names}{$tbl_name};
 
+  my $insert_fields = join ', ', @$field_list;
+  my $insert_params = join ', ', ('?') x @$field_list;
+  my $insert_values = join ', ', map { "\$self->{$_}" } @$field_list;
+  my $handle_autoincrement = '';
+
+  my @key = $self->dbh->primary_key(undef, undef, $tbl_name);
+  if (@key == 1) {
+    my $key_field = $key[0];
+    $handle_autoincrement = qq(
+\$self->{$key_field} =
+  \$self->dbh->last_insert_id(undef, undef, qw( $tbl_name $key_field ))
+    unless defined \$self->{$key_field};
+)
+  }
+
   my $code = <<"END_CODE";
 
 sub _ormlette_new {
   my \$class = shift;
   bless { \@_ }, \$class;
+}
+
+sub insert {
+  my \$self = shift;
+
+  my \$sql =
+    'INSERT INTO $tbl_name ( $insert_fields ) VALUES ( $insert_params )';
+  my \$sth = \$self->dbh->prepare_cached(\$sql);
+  \$sth->execute($insert_values);
+  $handle_autoincrement;
+  return \$self;
 }
 END_CODE
 
@@ -284,12 +310,22 @@ Ormlette.
 
 Returns the database handle used by Ormlette operations on this class.
 
+=method insert
+
+Inserts the object into the database as a new record.  If the table uses an
+autoincrement/serial primary key and no value for that key is set in the
+object, the object will be updated with the id assigned by the database.
+
+This method will not be generated if C<readonly> is set.
+
 =method new
 
 Basic constructor which accepts a hash of values and blesses them into the
 class.  If a ->new method has already been defined, it will not be replaced.
 If you wish to retain the default constructor functionality within your
 custom ->new method, you can call $class->_ormlette_new to do so.
+
+This method will not be generated if C<readonly> is set.
 
 =method load(1, 2, 3)
 
