@@ -252,3 +252,21 @@ use Ormlette;
     'delete keyed object with instance ->delete');
 }
 
+# ->iterate over records one at a time
+{
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do('CREATE TABLE test ( value integer )');
+  Ormlette->init($dbh, namespace => 'Iterate');
+
+  Iterate::Test->create(value => $_) for (1 .. 10);
+
+  my $sum;
+  Iterate::Test->iterate(sub { $sum += $_->{value} });
+  is($sum , 55, '->iterate over all records');
+
+  $sum = 0;
+  Iterate::Test->iterate(sub { $sum += $_->{value} },
+    'WHERE value BETWEEN ? AND ?', 3, 7);
+  is($sum , 25, '->iterate over subset of records');
+}
+

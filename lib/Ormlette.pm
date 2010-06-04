@@ -151,19 +151,24 @@ sub _ormlette_init_table {
   \$class->_ormlette_init(\$ormlette);
 }
 
-sub select {
+sub iterate {
   my \$class = shift;
+  my \$callback = shift;
 
   my \$sql = 'SELECT $select_fields FROM $tbl_name';
   \$sql .= ' ' . shift if \@_;
   my \$sth = \$class->dbh->prepare_cached(\$sql);
   \$sth->execute(\@_);
 
-  my \@results;
-  while (my \$obj = \$class->_ormlette_load_from_sth(\$sth)) {
-    push \@results, \$obj;
+  while (\$_ = \$class->_ormlette_load_from_sth(\$sth)) {
+    \$callback->();
   }
+}
 
+sub select {
+  my \$class = shift;
+  my \@results;
+  \$class->iterate(sub { push \@results, \$_ }, \@_);
   return \\\@results;
 }
 
@@ -240,7 +245,7 @@ sub insert {
     'INSERT INTO $tbl_name ( $insert_fields ) VALUES ( $insert_params )';
   my \$sth = \$self->dbh->prepare_cached(\$sql);
   \$sth->execute($insert_values);
-  $handle_autoincrement;
+  $handle_autoincrement
   return \$self;
 }
 END_CODE
@@ -385,6 +390,16 @@ primary key and no value for that key is set in the object, the object will be
 updated with the id assigned by the database.
 
 This method will not be generated if C<readonly> is set.
+
+=method iterate(sub { print $_->id })
+=method iterate(sub { print $_->name }, 'WHERE age > ?', 18)
+
+Takes a sub reference as the first parameter and passes each object returned by
+the subsequent query to the referenced sub in C<$_> for processing.  The
+primary difference between this method and C<select> is that C<iterate> only
+loads one record into memory at a time, while C<select> loads all records at
+once, which may require unacceptable amounts of memory, especially when dealing
+with larger data sets.
 
 =method new
 
