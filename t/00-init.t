@@ -59,3 +59,12 @@ use Ormlette;
   }, 'tables param causes non-listed tables to be ignored');
 }
 
+# access dbh via root namespace and table classes
+{
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do('CREATE TABLE dbh_test ( id integer )');
+  my $egg = Ormlette->init($dbh, package => 'DBHTest');
+  is(DBHTest->dbh, $dbh, 'retrieve dbh via root namespace');
+  is(DBHTest::DbhTest->dbh, $dbh, 'retrieve dbh via table class');
+}
+
