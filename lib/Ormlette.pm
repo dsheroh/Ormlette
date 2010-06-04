@@ -236,7 +236,6 @@ sub create {
 
 sub insert {
   my \$self = shift;
-
   my \$sql =
     'INSERT INTO $tbl_name ( $insert_fields ) VALUES ( $insert_params )';
   my \$sth = \$self->dbh->prepare_cached(\$sql);
@@ -254,12 +253,36 @@ END_CODE
     $code .= <<"END_CODE";
 sub update {
   my \$self = shift;
-
   my \$sql = 'UPDATE $tbl_name SET $update_fields WHERE $key_criteria';
   my \$sth = \$self->dbh->prepare_cached(\$sql);
   \$sth->execute($insert_values, $key_values);
 
   return \$self;
+}
+
+sub delete {
+  my \$self = shift;
+  my \$sql = 'DELETE FROM $tbl_name';
+  if (ref \$self) {
+    \$sql .= ' WHERE $key_criteria';
+    \@_ = ( $key_values );
+  } else {
+    return unless \@_;
+    \$sql .= ' ' . shift;
+  }
+  my \$sth = \$self->dbh->prepare_cached(\$sql);
+  \$sth->execute(\@_);
+}
+END_CODE
+  } else { # no primary key
+    $code .= <<"END_CODE";
+sub delete {
+  my \$class = shift;
+  my \$sql = 'DELETE FROM $tbl_name';
+  return unless \@_;
+  \$sql .= ' ' . shift;
+  my \$sth = \$class->dbh->prepare_cached(\$sql);
+  \$sth->execute(\@_);
 }
 END_CODE
   }
@@ -338,6 +361,21 @@ This method will not be generated if C<readonly> is set.
 =method dbh
 
 Returns the database handle used by Ormlette operations on this class.
+
+=method delete
+=method delete('WHERE name = ?', 'John Doe')
+
+As a class method, deletes all objects matching the criteria specified in the
+parameters.  In an attempt to avoid data loss from accidentally calling
+C<delete> as a class method when intending to use it as an instance method,
+nothing will be done if no criteria are provided.
+
+As an instance method, deletes the object from the database.  In this case, any
+parameters will be ignored.  The in-memory object is unaffected and remains
+available for further use, including re-saving it to the database.
+
+This method will not be generated if C<readonly> is set.  The instance method
+variant will only be generated for tables which have a primary key.
 
 =method insert
 

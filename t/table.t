@@ -211,3 +211,44 @@ use Ormlette;
     'reload object built with ->create');
 }
 
+# delete records with ->delete
+{
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do('CREATE TABLE no_key ( id integer, my_txt char(10) )');
+  $dbh->do('CREATE TABLE keyed ( id integer primary key, my_txt char(10) )');
+  Ormlette->init($dbh, namespace => 'Delete');
+
+  Delete::NoKey->create(id => 1, my_txt => 'foo');
+  Delete::NoKey->create(id => 2, my_txt => 'bar');
+  Delete::NoKey->create(id => 3, my_txt => 'baz');
+  Delete::NoKey->create(id => 4, my_txt => 'wibble');
+
+  Delete::NoKey->delete(q(WHERE my_txt LIKE 'ba%'));
+  is_deeply(Delete::NoKey->select,
+    [ { id => 1, my_txt => 'foo' }, { id => 4, my_txt => 'wibble' } ],
+    'delete unkeyed records with ->delete');
+
+  Delete::NoKey->delete;
+  is_deeply(Delete::NoKey->select,
+    [ { id => 1, my_txt => 'foo' }, { id => 4, my_txt => 'wibble' } ],
+    'class ->delete with no params is a no-op on unkeyed table');
+
+  for (qw( jan feb mar apr )) {
+    Delete::Keyed->create(my_txt => $_);
+  }
+
+  Delete::Keyed->delete(q(WHERE my_txt LIKE '%r'));
+  is_deeply(Delete::Keyed->select,
+    [ { id => 1, my_txt => 'jan' }, { id => 2, my_txt => 'feb' } ],
+    'delete keyed records with class ->delete');
+
+  Delete::Keyed->delete;
+  is_deeply(Delete::Keyed->select,
+    [ { id => 1, my_txt => 'jan' }, { id => 2, my_txt => 'feb' } ],
+    'class ->delete with no params is a no-op on keyed table');
+
+  Delete::Keyed->load(1)->delete;
+  is_deeply(Delete::Keyed->select, [ { id => 2, my_txt => 'feb' } ],
+    'delete keyed object with instance ->delete');
+}
+
