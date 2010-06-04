@@ -18,13 +18,13 @@ sub init {
 
   $debug = 1 if $params{debug};
 
-  my $package = $params{package} || caller;
+  my $namespace = $params{namespace} || caller;
 
-  my $tbl_names = _scan_tables($dbh, $package, %params);
+  my $tbl_names = _scan_tables($dbh, $namespace, %params);
 
   my $self = bless {
     dbh         => $dbh,
-    package     => $package,
+    namespace   => $namespace,
     tbl_names   => $tbl_names,
   }, $class;
 
@@ -37,7 +37,7 @@ sub init {
 sub dbh { $_[0]->{dbh} }
 
 sub _scan_tables {
-  my ($dbh, $package, %params) = @_;
+  my ($dbh, $namespace, %params) = @_;
 
   my $tables;
   my $table_sql =
@@ -53,7 +53,7 @@ sub _scan_tables {
   my %tbl_names;
   for (@$tables) {
     my @words = split '_', lc $_;
-    $tbl_names{$_} = $package . '::' . (join '', map { ucfirst } @words);
+    $tbl_names{$_} = $namespace . '::' . (join '', map { ucfirst } @words);
   }
 
   return \%tbl_names;
@@ -63,13 +63,13 @@ sub _scan_tables {
 
 sub _build_root_pkg {
   my $self = shift;
+  my $pkg_name = $self->{namespace};
 
-  my $pkg_src = $self->_pkg_core($self->{package});
+  my $pkg_src = $self->_pkg_core($pkg_name);
   $pkg_src .= $self->_root_methods;
 
-  $self->_compile_pkg($pkg_src)
-    unless $self->{package}->can('_ormlette_init');
-  $self->{package}->_ormlette_init_root($self);
+  $self->_compile_pkg($pkg_src) unless $pkg_name->can('_ormlette_init');
+  $pkg_name->_ormlette_init_root($self);
 }
 
 sub _build_table_pkg {
@@ -79,8 +79,7 @@ sub _build_table_pkg {
   my $pkg_src = $self->_pkg_core($pkg_name);
   $pkg_src .= $self->_table_methods($tbl_name);
 
-  $self->_compile_pkg($pkg_src)
-    unless $self->{tbl_names}{$tbl_name}->can('_ormlette_init');
+  $self->_compile_pkg($pkg_src) unless $pkg_name->can('_ormlette_init');
   $pkg_name->_ormlette_init_table($self, $tbl_name);
 }
 
@@ -161,11 +160,11 @@ connected to $dbh.  Recognized parameters:
 The C<debug> option will cause additional debugging information to be printed
 to STDERR as Ormlette does its initialization.
 
-=head2 package
+=head2 namespace
 
 By default, Ormlette will use the name of the package which calls C<init> as
 the base namespace for its generated code.  If you want the code to be placed
-into a different namespace, use the C<package> parameter to override this
+into a different namespace, use the C<namespace> parameter to override this
 default.
 
 =head2 tables

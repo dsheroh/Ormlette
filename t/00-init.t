@@ -38,14 +38,14 @@ use Ormlette;
   }, 'found all tables and built package names');
 }
 
-# use 'package' param to override root egg namespace
+# use 'namespace' param to override root egg namespace
 {
   my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
   $dbh->do('CREATE TABLE test_table ( id integer )');
-  my $egg = Ormlette->init($dbh, package => 'Egg');
+  my $egg = Ormlette->init($dbh, namespace => 'Egg');
   is_deeply($egg->{tbl_names}, {
     test_table => 'Egg::TestTable',
-  }, 'override root ormlette namespace with package param');
+  }, 'override root ormlette namespace with namespace param');
 }
 
 # restrict list of packages touched using tables param
@@ -63,7 +63,7 @@ use Ormlette;
 {
   my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
   $dbh->do('CREATE TABLE dbh_test ( id integer )');
-  my $egg = Ormlette->init($dbh, package => 'DBHTest');
+  my $egg = Ormlette->init($dbh, namespace => 'DBHTest');
   is(DBHTest->dbh, $dbh, 'retrieve dbh via root namespace');
   is(DBHTest::DbhTest->dbh, $dbh, 'retrieve dbh via table class');
 }
@@ -73,7 +73,7 @@ use Ormlette;
   my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
   $dbh->do('CREATE TABLE first_tbl ( id integer )');
   $dbh->do('CREATE TABLE second_tbl (id integer )');
-  my $egg = Ormlette->init($dbh, package => 'TblName');
+  my $egg = Ormlette->init($dbh, namespace => 'TblName');
   is(TblName::FirstTbl->table, 'first_tbl', 'first table name ok');
   is(TblName::SecondTbl->table, 'second_tbl', 'second table name ok');
 }
