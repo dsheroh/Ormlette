@@ -8,15 +8,13 @@ our $VERSION = 0.001000;
 
 use Carp 'croak';
 
-my $debug;
-
 sub init {
   my ($class, $dbh, %params) = @_;
 
   croak 'First param to Ormlette->init must be a connected database handle'
     unless $dbh->isa('DBI::db');
 
-  $debug = 1 if $params{debug};
+  my $debug = 1 if $params{debug};
 
   my $namespace = $params{namespace} || caller;
 
@@ -24,6 +22,7 @@ sub init {
 
   my $self = bless {
     dbh         => $dbh,
+    debug       => $debug,
     namespace   => $namespace,
     tbl_names   => $tbl_names,
   }, $class;
@@ -61,6 +60,14 @@ sub _scan_tables {
   return \%tbl_names;
 }
 
+sub _scan_fields {
+  my ($self, $tbl_name) = @_;
+
+  my $sth = $self->dbh->prepare("SELECT * FROM $tbl_name LIMIT 0");
+  $sth->execute;
+  return $sth->{NAME};
+}
+
 # Code generation methods below
 
 sub _build_root_pkg {
@@ -78,8 +85,10 @@ sub _build_table_pkg {
   my ($self, $tbl_name) = @_;
   my $pkg_name = $self->{tbl_names}{$tbl_name};
 
+  my $field_list = $self->_scan_fields($tbl_name);
+
   my $pkg_src = $self->_pkg_core($pkg_name);
-  $pkg_src .= $self->_table_methods($tbl_name);
+  $pkg_src .= $self->_table_methods($tbl_name, $field_list);
 
   $self->_compile_pkg($pkg_src) unless $pkg_name->can('_ormlette_init');
   $pkg_name->_ormlette_init_table($self, $tbl_name);
@@ -127,9 +136,10 @@ END_CODE
 }
 
 sub _table_methods {
-  my ($self, $tbl_name) = @_;
+  my ($self, $tbl_name, $field_list) = @_;
+  my $pkg_name = $self->{tbl_names}{$tbl_name};
 
-  return <<"END_CODE";
+  my $code = <<"END_CODE";
 my \$_ormlette_tbl_name;
 sub table { \$_ormlette_tbl_name }
 
@@ -139,7 +149,20 @@ sub _ormlette_init_table {
   \$_ormlette_tbl_name = \$table_name;
 }
 
+sub _ormlette_new {
+  my \$class = shift;
+  bless { \@_ }, \$class;
+}
+
 END_CODE
+
+  unless ($pkg_name->can('new')) {
+    $code .= '
+sub new { my $class = shift; $class->_ormlette_new(@_); }
+';
+  }
+
+  return $code;
 }
 
 1;
@@ -191,6 +214,13 @@ this will return the handle corresponding to the most-recently constructed
 Ormlette.
 
 =head1 Table Class Methods
+
+=method new
+
+Basic constructor which accepts a hash of values and blesses them into the
+class.  If a ->new method has already been defined, it will not be replaced.
+If you wish to retain the default constructor functionality within your
+custom ->new method, you can call $class->_ormlette_new to do so.
 
 =method dbh
 
