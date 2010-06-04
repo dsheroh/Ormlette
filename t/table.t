@@ -107,3 +107,13 @@ use Ormlette;
   isa_ok(SelectBless::Test->select->[0], 'SelectBless::Test');
 }
 
+# no mutating methods if readonly set
+{
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do('CREATE TABLE test ( id integer )');
+  my $egg = Ormlette->init($dbh, namespace => 'ROMethods', readonly => 1);
+  is(ROMethods::Test->can('new'), undef, 'no ->new with readonly');
+  is(ROMethods::Test->can('_ormlette_new'), undef,
+    'no ->_ormlette_new with readonly');
+}
+

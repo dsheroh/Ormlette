@@ -15,7 +15,6 @@ sub init {
     unless $dbh->isa('DBI::db');
 
   my $debug = 1 if $params{debug};
-
   my $namespace = $params{namespace} || caller;
 
   my $tbl_names = _scan_tables($dbh, $namespace, %params);
@@ -24,6 +23,7 @@ sub init {
     dbh         => $dbh,
     debug       => $debug,
     namespace   => $namespace,
+    readonly    => $params{readonly} ? 1 : 0,
     tbl_names   => $tbl_names,
   }, $class;
 
@@ -144,18 +144,11 @@ sub _table_methods {
   my $inflate_fields; $inflate_fields .= "$_ => \$$_, " for @$field_list;
 
   my $code = <<"END_CODE";
-my \$_ormlette_tbl_name;
-sub table { \$_ormlette_tbl_name }
+sub table { '$tbl_name' }
 
 sub _ormlette_init_table {
   my (\$class, \$ormlette, \$table_name) = \@_;
   \$class->_ormlette_init(\$ormlette);
-  \$_ormlette_tbl_name = \$table_name;
-}
-
-sub _ormlette_new {
-  my \$class = shift;
-  bless { \@_ }, \$class;
 }
 
 sub select {
@@ -183,6 +176,24 @@ sub _ormlette_load_from_sth {
   return bless { $inflate_fields }, \$class;
 }
 
+END_CODE
+
+  $code .= $self->_table_mutators($tbl_name, $field_list)
+    unless $self->{readonly};
+
+  return $code;
+}
+
+sub _table_mutators {
+  my ($self, $tbl_name, $field_list) = @_;
+  my $pkg_name = $self->{tbl_names}{$tbl_name};
+
+  my $code = <<"END_CODE";
+
+sub _ormlette_new {
+  my \$class = shift;
+  bless { \@_ }, \$class;
+}
 END_CODE
 
   unless ($pkg_name->can('new')) {
@@ -220,6 +231,11 @@ By default, Ormlette will use the name of the package which calls C<init> as
 the base namespace for its generated code.  If you want the code to be placed
 into a different namespace, use the C<namespace> parameter to override this
 default.
+
+=head2 readonly
+
+If C<readonly> is set to a true value, no data-altering methods will be
+generated and generated accessors will be read-only.
 
 =head2 tables
 
