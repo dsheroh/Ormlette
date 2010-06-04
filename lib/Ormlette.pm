@@ -139,6 +139,10 @@ sub _table_methods {
   my ($self, $tbl_name, $field_list) = @_;
   my $pkg_name = $self->{tbl_names}{$tbl_name};
 
+  my $select_fields = join ', ', @$field_list;
+  my $field_vars = '$' . join ', $', @$field_list;
+  my $inflate_fields; $inflate_fields .= "$_ => \$$_, " for @$field_list;
+
   my $code = <<"END_CODE";
 my \$_ormlette_tbl_name;
 sub table { \$_ormlette_tbl_name }
@@ -152,6 +156,31 @@ sub _ormlette_init_table {
 sub _ormlette_new {
   my \$class = shift;
   bless { \@_ }, \$class;
+}
+
+sub select {
+  my \$class = shift;
+
+  my \$sql = 'SELECT $select_fields FROM $tbl_name';
+  \$sql .= ' ' . shift if \@_;
+  my \$sth = \$class->dbh->prepare_cached(\$sql);
+  \$sth->execute(\@_);
+
+  my \@results;
+  while (my \$obj = \$class->_ormlette_load_from_sth(\$sth)) {
+    push \@results, \$obj;
+  }
+
+  return \\\@results;
+}
+
+sub _ormlette_load_from_sth {
+  my (\$class, \$sth) = \@_;
+
+  \$sth->bind_columns(\\(my ($field_vars)));
+  return unless \$sth->fetch;
+
+  return bless { $inflate_fields }, \$class;
 }
 
 END_CODE
@@ -215,6 +244,10 @@ Ormlette.
 
 =head1 Table Class Methods
 
+=method dbh
+
+Returns the database handle used by Ormlette operations on this class.
+
 =method new
 
 Basic constructor which accepts a hash of values and blesses them into the
@@ -222,9 +255,18 @@ class.  If a ->new method has already been defined, it will not be replaced.
 If you wish to retain the default constructor functionality within your
 custom ->new method, you can call $class->_ormlette_new to do so.
 
-=method dbh
+=method select
+=method select('WHERE id = 42');
+=method select('WHERE id > ? ORDER BY name LIMIT 5', 3);
 
-Returns the database handle used by Ormlette operations on this class.
+Returns a reference to an array containing all objects matching the query
+specified in the parameters, in the order returned by that query.  If no
+parameters are provided, returns objects for all records in the database's
+natural sort order.
+
+As this method simply appends its parameters to "SELECT (fields) FROM (table)",
+arbitrarily-complex queries can be built up in the parameters, including joins
+and subqueries.
 
 =method table
 
