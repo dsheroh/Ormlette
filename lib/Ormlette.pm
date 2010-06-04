@@ -20,39 +20,35 @@ sub init {
 
   my $package = $params{package} || caller;
 
-  my $tbl_data = _scan_tables($dbh, $package, %params);
+  my $tbl_names = _scan_tables($dbh, $package, %params);
 
   return bless {
     dbh         => $dbh,
-    tbl_data    => $tbl_data,
+    tbl_names   => $tbl_names,
   }, $class;
 }
 
 sub _scan_tables {
   my ($dbh, $package, %params) = @_;
 
-  my $table_sql;
-  my $scan_sql =
-    q(SELECT tbl_name, sql FROM sqlite_master WHERE type = 'table');
+  my $tables;
+  my $table_sql =
+    q(SELECT tbl_name FROM sqlite_master WHERE type = 'table');
   if ($params{tables}) {
     my @tbl_list = @{$params{tables}};
-    $scan_sql .= ' AND name IN (' . (join ', ', ('?') x @tbl_list) . ')';
-    $table_sql = $dbh->selectall_arrayref($scan_sql, undef, @tbl_list);
+    $table_sql .= ' AND name IN (' . (join ', ', ('?') x @tbl_list) . ')';
+    $tables = $dbh->selectcol_arrayref($table_sql, undef, @tbl_list);
   } else {
-    $table_sql = $dbh->selectall_arrayref($scan_sql);
+    $tables = $dbh->selectcol_arrayref($table_sql);
   }
 
-  my @tables;
-  for (@$table_sql) {
-    my @words = split '_', lc $_->[0];
-    push @tables, {
-      tbl_name  => $_->[0],
-      pkg_name  => $package . '::' . (join '', map { ucfirst } @words),
-      sql       => $_->[1],
-    };
+  my %tbl_names;
+  for (@$tables) {
+    my @words = split '_', lc $_;
+    $tbl_names{$_} = $package . '::' . (join '', map { ucfirst } @words);
   }
 
-  return \@tables;
+  return \%tbl_names;
 }
 
 1;

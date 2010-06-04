@@ -29,33 +29,32 @@ use Ormlette;
 # identify tables and construct correct package names
 {
   my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
-  $dbh->do(my $sql1 = 'CREATE TABLE test1 ( id integer )');
-  $dbh->do(my $sql2 = 'CREATE TABLE TEST_taBle_2 (id integer )');
+  $dbh->do('CREATE TABLE test1 ( id integer )');
+  $dbh->do('CREATE TABLE TEST_taBle_2 (id integer )');
   my $egg = Ormlette->init($dbh);
-  is_deeply($egg->{tbl_data}, [
-    { tbl_name => 'test1', pkg_name => 'main::Test1', sql => $sql1 },
-    { tbl_name => 'TEST_taBle_2', pkg_name => 'main::TestTable2', sql => $sql2 },
-  ], 'found all tables and built package names');
+  is_deeply($egg->{tbl_names}, {
+    test1 => 'main::Test1', TEST_taBle_2 => 'main::TestTable2',
+  }, 'found all tables and built package names');
 }
 
 # use 'package' param to override root egg namespace
 {
   my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
-  $dbh->do(my $sql = 'CREATE TABLE test_table ( id integer )');
+  $dbh->do('CREATE TABLE test_table ( id integer )');
   my $egg = Ormlette->init($dbh, package => 'Egg');
-  is_deeply($egg->{tbl_data}, [
-    { tbl_name => 'test_table', pkg_name => 'Egg::TestTable', sql => $sql },
-  ], 'override root ormlette namespace with package param');
+  is_deeply($egg->{tbl_names}, {
+    test_table => 'Egg::TestTable',
+  }, 'override root ormlette namespace with package param');
 }
 
 # restrict list of packages touched using tables param
 {
   my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
-  $dbh->do(my $sql1 = 'CREATE TABLE tbl_test ( id integer )');
-  $dbh->do(my $sql2 = 'CREATE TABLE ignore_me (id integer )');
+  $dbh->do('CREATE TABLE tbl_test ( id integer )');
+  $dbh->do('CREATE TABLE ignore_me (id integer )');
   my $egg = Ormlette->init($dbh, tables => [ 'tbl_test', 'bogus' ]);
-  is_deeply($egg->{tbl_data}, [
-    { tbl_name => 'tbl_test', pkg_name => 'main::TblTest', sql => $sql1 },
-  ], 'tables param causes non-listed tables to be ignored');
+  is_deeply($egg->{tbl_names}, {
+    tbl_test => 'main::TblTest',
+  }, 'tables param causes non-listed tables to be ignored');
 }
 
