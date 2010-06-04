@@ -39,19 +39,21 @@ sub dbh { $_[0]->{dbh} }
 sub _scan_tables {
   my ($dbh, $namespace, %params) = @_;
 
-  my $tables;
-  my $table_sql =
-    q(SELECT tbl_name FROM sqlite_master WHERE type = 'table');
+  my @tables = $dbh->tables('%', 'main', '%', 'TABLE');
+  if (my $quote_char = $dbh->get_info(29)) {
+    for (@tables) {
+      s/$quote_char$//;
+      s/^.*$quote_char//;
+    }
+  }
+
   if ($params{tables}) {
-    my @tbl_list = @{$params{tables}};
-    $table_sql .= ' AND name IN (' . (join ', ', ('?') x @tbl_list) . ')';
-    $tables = $dbh->selectcol_arrayref($table_sql, undef, @tbl_list);
-  } else {
-    $tables = $dbh->selectcol_arrayref($table_sql);
+    my %include = map { $_ => 1 } @{$params{tables}};
+    @tables = grep { $include{$_} } @tables;
   }
 
   my %tbl_names;
-  for (@$tables) {
+  for (@tables) {
     my @words = split '_', lc $_;
     $tbl_names{$_} = $namespace . '::' . (join '', map { ucfirst } @words);
   }
