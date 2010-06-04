@@ -65,51 +65,77 @@ sub _build_root_pkg {
   my $self = shift;
 
   my $pkg_src = $self->_pkg_core($self->{package});
+  $pkg_src .= $self->_root_methods;
 
   $self->_compile_pkg($pkg_src)
     unless $self->{package}->can('_ormlette_init');
-  $self->_init_pkg($self->{package});
+  $self->{package}->_ormlette_init_root($self);
 }
 
 sub _build_table_pkg {
   my ($self, $tbl_name) = @_;
+  my $pkg_name = $self->{tbl_names}{$tbl_name};
 
-  my $pkg_src = $self->_pkg_core($self->{tbl_names}{$tbl_name});
+  my $pkg_src = $self->_pkg_core($pkg_name);
+  $pkg_src .= $self->_table_methods($tbl_name);
 
   $self->_compile_pkg($pkg_src)
     unless $self->{tbl_names}{$tbl_name}->can('_ormlette_init');
-  $self->_init_pkg($self->{tbl_names}{$tbl_name});
+  $pkg_name->_ormlette_init_table($self, $tbl_name);
 }
 
 sub _compile_pkg {
   my ($self, $pkg_src) = @_;
   local $@;
+  print STDERR $pkg_src if $self->{debug};
   eval $pkg_src;
   die $@ if $@;
-}
-
-sub _init_pkg {
-  my ($self, $pkg_name) = @_;
-  $pkg_name ||= 'main';
-  $pkg_name->_ormlette_init($self);
 }
 
 sub _pkg_core {
   my ($self, $pkg_name) = @_;
 
-  my $core_src = <<"END_CODE";
+  return <<"END_CODE";
 package $pkg_name;
 
 use strict;
 use warnings;
 
-my \$dbh;
+my \$_ormlette_dbh;
 
-sub dbh { \$dbh }
+sub dbh { \$_ormlette_dbh }
 
 sub _ormlette_init {
-  my (undef, \$egg) = \@_;
-  \$dbh = \$egg->dbh;
+  my (\$class, \$ormlette) = \@_;
+  \$_ormlette_dbh = \$ormlette->dbh;
+}
+
+END_CODE
+}
+
+sub _root_methods {
+  my $self = shift;
+
+  return <<"END_CODE";
+sub _ormlette_init_root {
+  my (\$class, \$ormlette) = \@_;
+  \$class->_ormlette_init(\$ormlette);
+}
+
+END_CODE
+}
+
+sub _table_methods {
+  my ($self, $tbl_name) = @_;
+
+  return <<"END_CODE";
+my \$_ormlette_tbl_name;
+sub table { \$_ormlette_tbl_name }
+
+sub _ormlette_init_table {
+  my (\$class, \$ormlette, \$table_name) = \@_;
+  \$class->_ormlette_init(\$ormlette);
+  \$_ormlette_tbl_name = \$table_name;
 }
 
 END_CODE
@@ -122,6 +148,8 @@ __END__
 =head1 SYNOPSIS
 
 Write me!
+
+=head1 Ormlette Core Methods
 
 =method init ($dbh, %params)
 
@@ -151,4 +179,23 @@ parameter will cause all other tables to be ignored.
 Returns the internal database handle used for database interaction.  Can be
 called on the core Ormlette object, the root namespace of its generated code,
 or any of the persistent classes generated in that namespace.
+
+=head1 Root Namespace Methods
+
+=method dbh
+
+Returns the database handle attached by Ormlette to the root namespace.  If
+multiple Ormlette objects have been instantiated with the same C<namespace>,
+this will return the handle corresponding to the most-recently constructed
+Ormlette.
+
+=head1 Table Class Methods
+
+=method dbh
+
+Returns the database handle used by Ormlette operations on this class.
+
+=method table
+
+Returns the table name in which Ormlette stores this class's data.
 

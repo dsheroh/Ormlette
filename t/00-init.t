@@ -68,3 +68,13 @@ use Ormlette;
   is(DBHTest::DbhTest->dbh, $dbh, 'retrieve dbh via table class');
 }
 
+# get table names from table classes
+{
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do('CREATE TABLE first_tbl ( id integer )');
+  $dbh->do('CREATE TABLE second_tbl (id integer )');
+  my $egg = Ormlette->init($dbh, package => 'TblName');
+  is(TblName::FirstTbl->table, 'first_tbl', 'first table name ok');
+  is(TblName::SecondTbl->table, 'second_tbl', 'second table name ok');
+}
+
