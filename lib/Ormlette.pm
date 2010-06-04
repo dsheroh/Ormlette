@@ -219,8 +219,7 @@ sub _table_mutators {
     $handle_autoincrement = qq(
 \$self->{$key_field} =
   \$self->dbh->last_insert_id(undef, undef, qw( $tbl_name $key_field ))
-    unless defined \$self->{$key_field};
-)
+    unless defined \$self->{$key_field};);
   }
 
   my $code = <<"END_CODE";
@@ -241,6 +240,24 @@ sub insert {
   return \$self;
 }
 END_CODE
+
+  if (@key) {
+    my $key_criteria = join ' AND ', map { "$_ = ?" } @key;
+    my $key_values = join ', ', map { "\$self->{$_}" } @key;
+    my $update_fields = join ', ', map { "$_ = ?" } @$field_list;
+
+    $code .= <<"END_CODE";
+sub update {
+  my \$self = shift;
+
+  my \$sql = 'UPDATE $tbl_name SET $update_fields WHERE $key_criteria';
+  my \$sth = \$self->dbh->prepare_cached(\$sql);
+  \$sth->execute($insert_values, $key_values);
+
+  return \$self;
+}
+END_CODE
+  }
 
   unless ($pkg_name->can('new')) {
     $code .= '
@@ -312,9 +329,10 @@ Returns the database handle used by Ormlette operations on this class.
 
 =method insert
 
-Inserts the object into the database as a new record.  If the table uses an
-autoincrement/serial primary key and no value for that key is set in the
-object, the object will be updated with the id assigned by the database.
+Inserts the object into the database as a new record.  This method will fail if
+the record cannot be inserted.  If the table uses an autoincrement/serial
+primary key and no value for that key is set in the object, the object will be
+updated with the id assigned by the database.
 
 This method will not be generated if C<readonly> is set.
 
@@ -352,4 +370,12 @@ and subqueries.
 =method table
 
 Returns the table name in which Ormlette stores this class's data.
+
+=method update
+
+Updates the object's existing database record.  This method will fail if the
+object does not already exist in the database.
+
+This method will not be generated if C<readonly> is set or for tables which
+do not have a primary key.
 

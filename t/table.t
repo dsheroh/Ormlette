@@ -180,3 +180,23 @@ use Ormlette;
     { id => 5, my_txt => 'xyzzy' }, '->load inserted autokey record');
 }
 
+# ->update records in keyed table
+{
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do('CREATE TABLE keyed ( id integer primary key, my_txt char(10) )');
+  Ormlette->init($dbh, namespace => 'Update');
+
+  my $obj = Update::Keyed->new(id => 42, my_txt => 'fourty-two')->insert;
+  $obj->{my_txt} = 'twoscore and two';
+  is($obj->update, $obj, 'correct return value from ->update');
+
+  my $reload = Update::Keyed->load(42);
+  is_deeply($reload, $obj, 'updated original object retrieved');
+
+  $reload->{my_txt} = 'The Ultimate Answer';
+  $reload->update;
+  undef $obj;
+  $obj= Update::Keyed->load(42);
+  is_deeply($obj, $reload, 'update of loaded object reloaded');
+}
+
