@@ -22,11 +22,15 @@ sub init {
 
   my $tbl_names = _scan_tables($dbh, $package, %params);
 
-  return bless {
+  my $self = bless {
     dbh         => $dbh,
     tbl_names   => $tbl_names,
   }, $class;
+
+  return $self;
 }
+
+sub dbh { $_[0]->{dbh} }
 
 sub _scan_tables {
   my ($dbh, $package, %params) = @_;

@@ -24,6 +24,7 @@ use Ormlette;
   my $egg = Ormlette->init($dbh);
   isa_ok($egg, 'Ormlette');
   is($egg->{dbh}, $dbh, 'dbh stored in ormlette');
+  is($egg->dbh, $dbh, 'dbh accessible via ->dbh');
 }
 
 # identify tables and construct correct package names
