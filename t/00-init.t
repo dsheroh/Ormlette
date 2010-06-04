@@ -38,7 +38,7 @@ use Ormlette;
   }, 'found all tables and built package names');
 }
 
-# use 'namespace' param to override root egg namespace
+# use 'namespace' param to override root namespace
 {
   my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
   $dbh->do('CREATE TABLE test_table ( id integer )');
@@ -57,24 +57,5 @@ use Ormlette;
   is_deeply($egg->{tbl_names}, {
     tbl_test => 'main::TblTest',
   }, 'tables param causes non-listed tables to be ignored');
-}
-
-# access dbh via root namespace and table classes
-{
-  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
-  $dbh->do('CREATE TABLE dbh_test ( id integer )');
-  my $egg = Ormlette->init($dbh, namespace => 'DBHTest');
-  is(DBHTest->dbh, $dbh, 'retrieve dbh via root namespace');
-  is(DBHTest::DbhTest->dbh, $dbh, 'retrieve dbh via table class');
-}
-
-# get table names from table classes
-{
-  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
-  $dbh->do('CREATE TABLE first_tbl ( id integer )');
-  $dbh->do('CREATE TABLE second_tbl (id integer )');
-  my $egg = Ormlette->init($dbh, namespace => 'TblName');
-  is(TblName::FirstTbl->table, 'first_tbl', 'first table name ok');
-  is(TblName::SecondTbl->table, 'second_tbl', 'second table name ok');
 }
 
