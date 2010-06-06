@@ -326,3 +326,18 @@ use Ormlette;
     'all known attribs present after ->new and junk params ignored');
 }
 
+# ->truncate
+{
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do('CREATE TABLE test ( id integer )');
+  Ormlette->init($dbh, namespace => 'Truncate');
+
+  Truncate::Test->create(id => 1);
+  Truncate::Test->truncate;
+  is_deeply(Truncate::Test->select, [ ],
+    '->truncate as class method clears table');
+
+  my $obj = Truncate::Test->create(id => 2);
+  dies_ok { $obj->truncate } '->truncate as instance method dies';
+}
+

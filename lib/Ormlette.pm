@@ -111,6 +111,8 @@ package $pkg_name;
 use strict;
 use warnings;
 
+use Carp 'croak';
+
 my \$_ormlette_dbh;
 
 sub dbh { \$_ormlette_dbh }
@@ -282,6 +284,15 @@ sub insert {
   $handle_autoincrement
   return \$self;
 }
+
+sub truncate {
+  my \$class = shift;
+  croak '->truncate must be called as a class method' if ref \$class;
+  my \$sql = 'DELETE FROM $tbl_name';
+  my \$sth = dbh->prepare_cached(\$sql);
+  \$sth->execute;
+}
+
 END_CODE
 
   if (@key) {
