@@ -270,3 +270,48 @@ use Ormlette;
   is($sum , 25, '->iterate over subset of records');
 }
 
+# read/write using accessors
+{
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do('CREATE TABLE test ( id integer, my_txt text )');
+  Ormlette->init($dbh, namespace => 'RWAccessor');
+
+  my $obj = RWAccessor::Test->new(id => 1, my_txt => 'one');
+  is($obj->id, 1, 'read numeric field');
+  is($obj->id(0), 0, 'change numeric field');
+  is($obj->id, 0, 'read changed numeric field');
+  is($obj->my_txt, 'one', 'read string field');
+  is($obj->my_txt(''), '', 'change string field');
+  is($obj->my_txt, '', 'read changed string field');
+}
+
+# generate read-only accessors if appropriate
+{
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do('CREATE TABLE test ( id integer, my_txt text )');
+  Ormlette->init($dbh, namespace => 'ROAccessor', readonly => 1);
+
+  my $obj = bless { id => 42, my_txt => 'The Answer' }, 'ROAccessor::Test';
+  is($obj->id, 42, 'read r/o numeric field');
+  is($obj->id(2), 42, 'refuse to change r/o numeric field');
+  is($obj->id, 42, 'r/o numeric field not changed');
+  is($obj->my_txt, 'The Answer', 'read r/o string field');
+  is($obj->my_txt('fail'), 'The Answer', 'refuse to change r/o string field');
+  is($obj->my_txt, 'The Answer', 'r/o string field not changed');
+}
+
+# don't replace existing accessors
+{
+  package PreserveAccessors::Test;
+  sub foo { 'Surprise!' };
+
+  package main;
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do('CREATE TABLE test ( foo text, xyzzy text )');
+  Ormlette->init($dbh, namespace => 'PreserveAccessors');
+
+  my $obj = PreserveAccessors::Test->new(foo => 'bar', xyzzy => 'plugh');
+  is($obj->foo, 'Surprise!', 'do not overwrite existing accessor');
+  is($obj->xyzzy, 'plugh', 'missing accessor still created normally');
+}
+

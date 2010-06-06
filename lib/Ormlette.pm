@@ -143,7 +143,12 @@ sub _table_methods {
   my $field_vars = '$' . join ', $', @$field_list;
   my $inflate_fields; $inflate_fields .= "$_ => \$$_, " for @$field_list;
 
-  my $code = <<"END_CODE";
+  my @accessor_fields = grep { !$pkg_name->can($_) } @$field_list;
+  my $code;
+  $code = $self->_add_accessors($pkg_name, @accessor_fields)
+    if @accessor_fields;
+
+  $code .= <<"END_CODE";
 sub table { '$tbl_name' }
 
 sub _ormlette_init_table {
@@ -207,6 +212,31 @@ END_CODE
     unless $self->{readonly};
 
   return $code;
+}
+
+sub _add_accessors {
+  my ($self, $pkg_name, @accessor_fields) = @_;
+
+  my $accessor_sub;
+  if ($self->{readonly}) {
+    $accessor_sub = '$_[0]->{$attr}';
+  } else {
+    $accessor_sub = '
+      $_[0]->{$attr} = $_[1] if defined $_[1];
+      $_[0]->{$attr};'
+  }
+
+  my $field_list = join ' ', @accessor_fields;
+  return <<"END_CODE";
+{
+  no strict 'refs';
+  for my \$attr (qw( $field_list )) {
+    *\$attr = sub {
+      $accessor_sub
+    };
+  }
+}
+END_CODE
 }
 
 sub _table_mutators {
@@ -355,6 +385,17 @@ this will return the handle corresponding to the most-recently constructed
 Ormlette.
 
 =head1 Table Class Methods
+
+In addition to the methods listed below, accessors will be generated for each
+field found in the table unless an accessor for that field already exists,
+providing the convenience of not having to create all the accessors yourself
+while also allowing for custom accessors to be used where needed.  Generated
+accessors will be read-only if C<readonly> is set or writable using the
+"$obj->attr('new value')" convention otherwise.
+
+Note that the generated accessors are extremely simple and make no attempt at
+performing any form of data validation, so you may wish to use another fine
+CPAN module to generate accessors before initializing Ormlette.
 
 =method create
 
