@@ -38,6 +38,20 @@ use Ormlette;
   }, 'found all tables and built package names');
 }
 
+# correctly identify root namespace
+{
+  package Root;
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do('CREATE TABLE test ( id integer )');
+  my $egg = Ormlette->init($dbh);
+
+  package main;
+  is_deeply($egg->{tbl_names}, { test => 'Root::Test' },
+    'packages placed in correct namespace by default');
+  is(Root->dbh, $dbh, 'default root namespace knows dbh');
+  is(Root::Test->dbh, $dbh, 'default table package knows dbh');
+}
+
 # use 'namespace' param to override root namespace
 {
   my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
