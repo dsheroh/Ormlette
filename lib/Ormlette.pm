@@ -247,21 +247,25 @@ sub _table_mutators {
   my $insert_params = join ', ', ('?') x @$field_list;
   my $insert_values = join ', ', map { "\$self->{$_}" } @$field_list;
   my $handle_autoincrement = '';
+  my $init_all_attribs = join ",\n    ",
+    map { "'$_' => \$params{'$_'}" } @$field_list;
 
   my @key = $self->dbh->primary_key(undef, undef, $tbl_name);
   if (@key == 1) {
     my $key_field = $key[0];
     $handle_autoincrement = qq(
-\$self->{$key_field} =
-  \$self->dbh->last_insert_id(undef, undef, qw( $tbl_name $key_field ))
-    unless defined \$self->{$key_field};);
+  \$self->{$key_field} =
+    \$self->dbh->last_insert_id(undef, undef, qw( $tbl_name $key_field ))
+      unless defined \$self->{$key_field};);
   }
 
   my $code = <<"END_CODE";
 
 sub _ormlette_new {
-  my \$class = shift;
-  bless { \@_ }, \$class;
+  my (\$class, \%params) = \@_;
+  bless {
+    $init_all_attribs
+  }, \$class;
 }
 
 sub create {

@@ -33,7 +33,7 @@ use Ormlette;
 # default ->new returns an object and allows values to be set
 {
   my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
-  $dbh->do('CREATE TABLE test ( id integer )');
+  $dbh->do('CREATE TABLE test ( foo text, bar text )');
   Ormlette->init($dbh, namespace => 'BasicNew');
   isa_ok(BasicNew::Test->new, 'BasicNew::Test');
   my $obj = BasicNew::Test->new(foo => 1, bar => 'baz');
@@ -313,5 +313,16 @@ use Ormlette;
   my $obj = PreserveAccessors::Test->new(foo => 'bar', xyzzy => 'plugh');
   is($obj->foo, 'Surprise!', 'do not overwrite existing accessor');
   is($obj->xyzzy, 'plugh', 'missing accessor still created normally');
+}
+
+# default ->new inserts hash keys for all attribs and nothing else
+{
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do('CREATE TABLE test ( id integer, my_text text )');
+  Ormlette->init($dbh, namespace => 'BuildComplete');
+
+  my $obj = BuildComplete::Test->new(id => 3, garbage => 'ignore');
+  is_deeply($obj, { id => 3, my_text => undef },
+    'all known attribs present after ->new and junk params ignored');
 }
 
