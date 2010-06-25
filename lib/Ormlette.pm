@@ -476,8 +476,8 @@ variant will only be generated for tables which have a primary key.
 
 Inserts the object into the database as a new record.  This method will fail if
 the record cannot be inserted.  If the table uses an autoincrement/serial
-primary key and no value for that key is set in the object, the object will be
-updated with the id assigned by the database.
+primary key and no value for that key is set in the object, the in-memory
+object will be updated with the id assigned by the database.
 
 This method will not be generated if C<readonly> is set.
 
@@ -488,8 +488,8 @@ Takes a sub reference as the first parameter and passes each object returned by
 the subsequent query to the referenced sub in C<$_> for processing.  The
 primary difference between this method and C<select> is that C<iterate> only
 loads one record into memory at a time, while C<select> loads all records at
-once, which may require unacceptable amounts of memory, especially when dealing
-with larger data sets.
+once, which may require unacceptable amounts of memory when dealing with larger
+data sets.
 
 =method new
 
@@ -500,14 +500,20 @@ custom ->new method, you can call $class->_ormlette_new to do so.
 
 This method will not be generated if C<readonly> is set.
 
-=method load(1, 2, 3)
+=method load(1)
+=method load(foo => 1, bar => 2)
 
-Retrieves a single object from the database based on its primary key value(s).
-If the table has a multi-field primary key, the values must be listed in the
-same order as the fields in the primary key declaration.  Returns undef if no
-matching record exists.
+Retrieves a single object from the database based on the specified criteria.
 
-This method will only be generated for tables which have a primary key.
+If the table has a single-field primary key, passing a single argument will
+retrieve the record with that value as its primary key.
+
+Lookups on non-key fields or multiple-field primary keys can be performed by
+passing a hash of field => value pairs.  If more than one record matches the
+given criteria, only one will be returned, but which one will be returned is
+database-dependent and may or may not be consistent from one call to the next.
+
+Returns undef if no matching record exists.
 
 =method select
 =method select('WHERE id = 42');
