@@ -121,6 +121,8 @@ use Ormlette;
   my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
   $dbh->do('CREATE TABLE no_key ( id integer, my_txt char(10) )');
   $dbh->do('CREATE TABLE keyed ( id integer primary key, my_txt char(10) )');
+  $dbh->do('CREATE TABLE multi_key
+    ( id1 integer, id2 integer, PRIMARY KEY (id1, id2) )');
   Ormlette->init($dbh, namespace => 'Delete');
 
   Delete::NoKey->create(id => 1, my_txt => 'foo');
@@ -158,6 +160,24 @@ use Ormlette;
   Delete::Keyed->load(1)->delete;
   is_deeply(Delete::Keyed->select, [ { id => 2, my_txt => 'feb' } ],
     'delete keyed object with instance ->delete');
+
+  for (1..4) {
+    Delete::MultiKey->create(id1 => $_, id2 => 7);
+  }
+
+  Delete::MultiKey->delete(q(WHERE id1 > 2));
+  is_deeply(Delete::MultiKey->select,
+    [ { id1 => 1, id2 => 7 }, { id1 => 2, id2 => 7 } ],
+    'delete with class ->delete from table with multi-field key');
+
+  Delete::MultiKey->delete;
+  is_deeply(Delete::MultiKey->select,
+    [ { id1 => 1, id2 => 7 }, { id1 => 2, id2 => 7 } ],
+    'class ->delete with no params is a no-op on multi-field keyed table');
+
+  Delete::MultiKey->load(id1 => 1)->delete;
+  is_deeply(Delete::MultiKey->select, [ { id1 => 2, id2 => 7 } ],
+    'delete multi-field keyed object with instance ->delete');
 }
 
 # ->iterate over records one at a time
