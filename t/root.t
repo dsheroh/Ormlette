@@ -4,7 +4,6 @@ use strict;
 use warnings;
 
 use Test::More 'no_plan';
-use Test::Exception;
 
 use FindBin;
 use lib ("$FindBin::Bin/../lib" =~ m[^(/.*)])[0];
