@@ -190,17 +190,50 @@ sub _ormlette_load_from_sth {
 
 END_CODE
 
-  my @key = $self->dbh->primary_key(undef, undef, $tbl_name);
-  if (@key) {
-    my $key_criteria = join ' AND ', map { "$_ = ?" } @key;
-
-    $code .= <<"END_CODE";
+  $code .= <<"END_CODE";
 sub load {
   my \$class = shift;
 
-  my \$sql = 'SELECT $select_fields FROM $tbl_name WHERE $key_criteria';
+  croak '->load requires at least one argument' unless \@_;
+
+  my \$sql = 'SELECT $select_fields FROM $tbl_name WHERE ';
+  my \@criteria;
+
+END_CODE
+
+  my @key = $self->dbh->primary_key(undef, undef, $tbl_name);
+  if (@key == 1) {
+    my $key_criteria = $key[0] . ' = ?';
+
+    $code .= <<"END_CODE";
+
+  if (\@_ == 1) {
+    \$sql .= '$key_criteria';
+    \@criteria = \@_;
+  } else {
+    croak 'if not using a single-field key, ->load requires a hash of criteria'
+      unless \@_ % 2 == 0;
+
+    my \%params = \@_;
+    \$sql .= join ' AND ', map { "\$_ = ?" } keys \%params;
+    \@criteria = values \%params;
+  }
+END_CODE
+  } else { # no primary key
+    $code .= <<"END_CODE";
+  croak 'if not using a single-field key, ->load requires a hash of criteria'
+    unless \@_ % 2 == 0;
+
+  my \%params = \@_;
+  \$sql .= join ' AND ', map { "\$_ = ?" } keys \%params;
+  \$sql .= ' LIMIT 1';
+  \@criteria = values \%params;
+END_CODE
+  }
+
+  $code .= <<"END_CODE";
   my \$sth = \$class->dbh->prepare_cached(\$sql);
-  \$sth->execute(\@_);
+  \$sth->execute(\@criteria);
 
   my \$obj = \$class->_ormlette_load_from_sth(\$sth);
   \$sth->finish;
@@ -208,7 +241,6 @@ sub load {
   return \$obj;
 }
 END_CODE
-  }
 
   $code .= $self->_table_mutators($tbl_name, $field_list)
     unless $self->{readonly};
