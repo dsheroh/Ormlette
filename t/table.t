@@ -138,6 +138,9 @@ use Ormlette;
     [ { id => 1, my_txt => 'foo' }, { id => 4, my_txt => 'wibble' } ],
     'class ->delete with no params is a no-op on unkeyed table');
 
+  dies_ok { Delete::NoKey->load(id => 1)->delete }
+    'instance ->delete dies on unkeyed table';
+
   for (qw( jan feb mar apr )) {
     Delete::Keyed->create(my_txt => $_);
   }

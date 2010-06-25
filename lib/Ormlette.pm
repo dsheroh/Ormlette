@@ -362,9 +362,10 @@ END_CODE
     $code .= <<"END_CODE";
 sub delete {
   my \$class = shift;
-  my \$sql = 'DELETE FROM $tbl_name';
+  croak '->delete may not be called as an instance method for an unkeyed table'
+    if ref \$class;
   return unless \@_;
-  \$sql .= ' ' . shift;
+  my \$sql = 'DELETE FROM $tbl_name ' . shift;
   my \$sth = \$class->dbh->prepare_cached(\$sql);
   \$sth->execute(\@_);
 }
