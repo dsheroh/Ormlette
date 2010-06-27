@@ -71,5 +71,8 @@ use Ormlette;
   is_deeply($egg->{tbl_names}, {
     tbl_test => 'main::TblTest',
   }, 'tables param causes non-listed tables to be ignored');
+
+  $egg = Ormlette->init($dbh, tables => [ ]);
+  is_deeply($egg->{tbl_names}, { }, 'empty tables param ignores everything');
 }
 
