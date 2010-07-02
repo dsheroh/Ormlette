@@ -67,6 +67,19 @@ use Ormlette;
   isa_ok(SelectBless::Test->select->[0], 'SelectBless::Test');
 }
 
+# select from join with shared field names
+{
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do('CREATE TABLE foo ( id integer primary key)');
+  $dbh->do('CREATE TABLE bar ( id integer primary key, foo_id integer )');
+  Ormlette->init($dbh, namespace => 'DupJoin');
+
+  my $foo = DupJoin::Foo->create;
+  my $bar = DupJoin::Bar->create(foo_id => $foo->id);
+  is_deeply(DupJoin::Foo->select('JOIN bar ON foo.id = bar.foo_id'), [ $foo ],
+    'do ->select on joined tables with shared field name');
+}
+
 # create ->load method for both keyed and unkeyed tables
 {
   my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');

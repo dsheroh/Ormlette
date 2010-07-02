@@ -141,7 +141,7 @@ sub _table_methods {
   my ($self, $tbl_name, $field_list) = @_;
   my $pkg_name = $self->{tbl_names}{$tbl_name};
 
-  my $select_fields = join ', ', @$field_list;
+  my $select_fields = join ', ', map { "$tbl_name.$_" } @$field_list;
   my $field_vars = '$' . join ', $', @$field_list;
   my $inflate_fields; $inflate_fields .= "$_ => \$$_, " for @$field_list;
 
