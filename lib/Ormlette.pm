@@ -387,6 +387,16 @@ __END__
 
 =head1 SYNOPSIS
 
+C<<
+my $dbh = DBI->connect(...);
+Ormlette->init($dbh, tables => [ 'my_table' ], namespace => Test);
+
+my $obj = Test::MyTable->create(foo => 1, bar => 3);
+print Test::MyTable->load(foo => 1)->bar; # 3
+>>
+
+=head1 DESCRIPTION
+
 Ormlette is a simple object persistence mechanism which is specifically
 designed to avoid imposing any requirements on how your code is organized or
 what base classes you use.
