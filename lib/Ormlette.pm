@@ -387,7 +387,24 @@ __END__
 
 =head1 SYNOPSIS
 
-Write me!
+Ormlette is a simple object persistence mechanism which is specifically
+designed to avoid imposing any requirements on how your code is organized or
+what base classes you use.
+
+Rather than requiring your classes to inherit from it, Ormlette is initialized
+by passing an open database handle to C<< Ormlette->init >>, at which point
+Ormlette will identify the tables in that database and, for each one, derive a
+package name by camel-casing the table name using C<_> in the table name as a
+word break (e.g., C<foo_bar> becomes C<FooBar>) and prepending the current
+package's name.  It will then inject its methods (see below) into the resulting
+package.  It will also create accessors corresponding to each of the table's
+fields unless these accessors already exist.
+
+Note that, if you want to define your own methods within a package which will
+have methods injected by Ormlette, you should load the corresponding module
+(with C<use> or C<require>) before doing any Ormlette initializations affecting
+that package so that Ormlette will know what methods you've defined yourself
+and avoid interfering with them.
 
 =head1 Ormlette Core Methods
 
@@ -399,7 +416,8 @@ connected to $dbh.  Recognized parameters:
 =head2 debug
 
 The C<debug> option will cause additional debugging information to be printed
-to STDERR as Ormlette does its initialization.
+to STDERR as Ormlette does its initialization.  At this point, this consists
+solely of the generated source code for each package affected by Ormlette.
 
 =head2 namespace
 
@@ -410,14 +428,14 @@ default.
 
 =head2 readonly
 
-If C<readonly> is set to a true value, no data-altering methods will be
-generated and generated accessors will be read-only.
+If C<readonly> is set to a true value, no constructors or database-altering
+methods will be created and generated accessors will be read-only.
 
 =head2 tables
 
 If you only require Ormlette code to be generated for some of the tables in
-your database, providing a reference to a list of table names in the C<tables>
-parameter will cause all other tables to be ignored.
+your database, providing a reference to an array of table names in the
+C<tables> parameter will cause all other tables to be ignored.
 
 =method dbh
 
@@ -431,8 +449,8 @@ or any of the persistent classes generated in that namespace.
 
 Returns the database handle attached by Ormlette to the root namespace.  If
 multiple Ormlette objects have been instantiated with the same C<namespace>,
-this will return the handle corresponding to the most-recently constructed
-Ormlette.
+this will return the handle corresponding to the first Ormlette initialized
+there.
 
 =head1 Table Class Methods
 
@@ -441,7 +459,7 @@ field found in the table unless an accessor for that field already exists,
 providing the convenience of not having to create all the accessors yourself
 while also allowing for custom accessors to be used where needed.  Generated
 accessors will be read-only if C<readonly> is set or writable using the
-"$obj->attr('new value')" convention otherwise.
+C<< $obj->attr('new value') >> convention otherwise.
 
 Note that the generated accessors are extremely simple and make no attempt at
 performing any form of data validation, so you may wish to use another fine
@@ -511,8 +529,8 @@ retrieve the record with that value as its primary key.
 
 Lookups on non-key fields or multiple-field primary keys can be performed by
 passing a hash of field => value pairs.  If more than one record matches the
-given criteria, only one will be returned, but which one will be returned is
-database-dependent and may or may not be consistent from one call to the next.
+given criteria, only one will be returned; which one is returned may or may
+not be consistent from one call to the next.
 
 Returns undef if no matching record exists.
 
