@@ -569,3 +569,8 @@ object does not already exist in the database.
 This method will not be generated if C<readonly> is set or for tables which
 do not have a primary key.
 
+=head1 CREDITS
+
+Although it is not intended as a drop-in replacement, Ormlette's API and
+general coding style are heavily influenced by Adam Kennedy's L<ORLite>.
+
