@@ -26,8 +26,8 @@ use Ormlette;
   $dbh->do(q(INSERT INTO test (my_int, my_str) VALUES (9, 'nine')));
   is_deeply(
     [ sort { $a->{my_int} <=> $b->{my_int} } @{SelectAll::Test->select} ],
-    [ { my_int => 7, my_str => 'seven' }, 
-      { my_int => 8, my_str => 'eight' }, 
+    [ { my_int => 7, my_str => 'seven' },
+      { my_int => 8, my_str => 'eight' },
       { my_int => 9, my_str => 'nine' } ],
     'retrieved all objects in table with ->select');
 }
