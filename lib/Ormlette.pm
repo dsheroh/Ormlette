@@ -569,6 +569,15 @@ object does not already exist in the database.
 This method will not be generated if C<readonly> is set or for tables which
 do not have a primary key.
 
+=head1 TO DO
+
+=for :list
+* Verify functionality with DBD back-ends other than SQLite
+* Add support for multi-level package hierarchies
+* Allow all Ormlette functions to be overridden, not just C<new> and accessors
+* Add transaction support
+* Cache loaded objects to prevent duplication
+
 =head1 CREDITS
 
 Although it is not intended as a drop-in replacement, Ormlette's API and
