@@ -1,12 +1,11 @@
 package Ormlette;
-# ABSTRACT: Light and fluffy object persistence
 
 use strict;
 use warnings;
 
 our $VERSION = 0.001000;
 
-use Carp 'croak';
+use Carp;
 
 sub init {
   my ($class, $dbh, %params) = @_;
@@ -14,14 +13,13 @@ sub init {
   croak 'First param to Ormlette->init must be a connected database handle'
     unless $dbh->isa('DBI::db');
 
-  my $debug = 1 if $params{debug};
   my $namespace = $params{namespace} || caller;
 
   my $tbl_names = _scan_tables($dbh, $namespace, %params);
 
   my $self = bless {
     dbh         => $dbh,
-    debug       => $debug,
+    debug       => $params{debug} ? 1 : 0,
     namespace   => $namespace,
     readonly    => $params{readonly} ? 1 : 0,
     tbl_names   => $tbl_names,
@@ -111,7 +109,7 @@ package $pkg_name;
 use strict;
 use warnings;
 
-use Carp 'croak';
+use Carp;
 
 my \$_ormlette_dbh;
 
@@ -219,7 +217,7 @@ END_CODE
     \@criteria = values \%params;
   }
 END_CODE
-  } else { # no primary key
+  } else { # primary key absent or multi-field
     $code .= <<"END_CODE";
   croak 'if not using a single-field key, ->load requires a hash of criteria'
     unless \@_ % 2 == 0;
@@ -384,6 +382,8 @@ sub new { my $class = shift; $class->_ormlette_new(@_); }
 1;
 
 __END__
+
+# ABSTRACT: Light and fluffy object persistence
 
 =head1 SYNOPSIS
 
