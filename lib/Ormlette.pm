@@ -387,13 +387,11 @@ __END__
 
 =head1 SYNOPSIS
 
-C<<
-my $dbh = DBI->connect(...);
-Ormlette->init($dbh, tables => [ 'my_table' ], namespace => Test);
+  my $dbh = DBI->connect(...);
+  Ormlette->init($dbh, tables => [ 'my_table' ], namespace => Test);
 
-my $obj = Test::MyTable->create(foo => 1, bar => 3);
-print Test::MyTable->load(foo => 1)->bar; # 3
->>
+  my $obj = Test::MyTable->create(foo => 1, bar => 3);
+  print Test::MyTable->load(foo => 1)->bar; # 3
 
 =head1 DESCRIPTION
 
@@ -418,36 +416,40 @@ and avoid interfering with them.
 
 =head1 Ormlette Core Methods
 
-=method init ($dbh, %params)
+=head2 init ($dbh, %params)
 
 Attaches Ormlette methods to classes corresponding to tables in the database
 connected to $dbh.  Recognized parameters:
 
-=head2 debug
+=over 4
+
+=head3 debug
 
 The C<debug> option will cause additional debugging information to be printed
 to STDERR as Ormlette does its initialization.  At this point, this consists
 solely of the generated source code for each package affected by Ormlette.
 
-=head2 namespace
+=head3 namespace
 
 By default, Ormlette will use the name of the package which calls C<init> as
 the base namespace for its generated code.  If you want the code to be placed
 into a different namespace, use the C<namespace> parameter to override this
 default.
 
-=head2 readonly
+=head3 readonly
 
 If C<readonly> is set to a true value, no constructors or database-altering
 methods will be created and generated accessors will be read-only.
 
-=head2 tables
+=head3 tables
 
 If you only require Ormlette code to be generated for some of the tables in
 your database, providing a reference to an array of table names in the
 C<tables> parameter will cause all other tables to be ignored.
 
-=method dbh
+=back
+
+=head2 dbh
 
 Returns the internal database handle used for database interaction.  Can be
 called on the core Ormlette object, the root namespace of its generated code,
@@ -455,7 +457,7 @@ or any of the persistent classes generated in that namespace.
 
 =head1 Root Namespace Methods
 
-=method dbh
+=head2 dbh
 
 Returns the database handle attached by Ormlette to the root namespace.  If
 multiple Ormlette objects have been instantiated with the same C<namespace>,
@@ -475,19 +477,20 @@ Note that the generated accessors are extremely simple and make no attempt at
 performing any form of data validation, so you may wish to use another fine
 CPAN module to generate accessors before initializing Ormlette.
 
-=method create
+=head2 create
 
 Constructs an object by calling C<new>, then uses C<insert> to immediately
 store it to the database.
 
 This method will not be generated if C<readonly> is set.
 
-=method dbh
+=head2 dbh
 
 Returns the database handle used by Ormlette operations on this class.
 
-=method delete
-=method delete('WHERE name = ?', 'John Doe')
+=head2 delete
+
+=head2 delete('WHERE name = ?', 'John Doe')
 
 As a class method, deletes all objects matching the criteria specified in the
 parameters.  In an attempt to avoid data loss from accidentally calling
@@ -501,7 +504,7 @@ available for further use, including re-saving it to the database.
 This method will not be generated if C<readonly> is set.  The instance method
 variant will only be generated for tables which have a primary key.
 
-=method insert
+=head2 insert
 
 Inserts the object into the database as a new record.  This method will fail if
 the record cannot be inserted.  If the table uses an autoincrement/serial
@@ -510,8 +513,9 @@ object will be updated with the id assigned by the database.
 
 This method will not be generated if C<readonly> is set.
 
-=method iterate(sub { print $_->id })
-=method iterate(sub { print $_->name }, 'WHERE age > ?', 18)
+=head2 iterate(sub { print $_->id })
+
+=head2 iterate(sub { print $_->name }, 'WHERE age > ?', 18)
 
 Takes a sub reference as the first parameter and passes each object returned by
 the subsequent query to the referenced sub in C<$_> for processing.  The
@@ -520,7 +524,7 @@ loads one record into memory at a time, while C<select> loads all records at
 once, which may require unacceptable amounts of memory when dealing with larger
 data sets.
 
-=method new
+=head2 new
 
 Basic constructor which accepts a hash of values and blesses them into the
 class.  If a ->new method has already been defined, it will not be replaced.
@@ -529,8 +533,9 @@ custom ->new method, you can call $class->_ormlette_new to do so.
 
 This method will not be generated if C<readonly> is set.
 
-=method load(1)
-=method load(foo => 1, bar => 2)
+=head2 load(1)
+
+=head2 load(foo => 1, bar => 2)
 
 Retrieves a single object from the database based on the specified criteria.
 
@@ -544,9 +549,11 @@ not be consistent from one call to the next.
 
 Returns undef if no matching record exists.
 
-=method select
-=method select('WHERE id = 42');
-=method select('WHERE id > ? ORDER BY name LIMIT 5', 3);
+=head2 select
+
+=head2 select('WHERE id = 42');
+
+=head2 select('WHERE id > ? ORDER BY name LIMIT 5', 3);
 
 Returns a reference to an array containing all objects matching the query
 specified in the parameters, in the order returned by that query.  If no
@@ -557,11 +564,11 @@ As this method simply appends its parameters to "SELECT (fields) FROM (table)",
 arbitrarily-complex queries can be built up in the parameters, including joins
 and subqueries.
 
-=method table
+=head2 table
 
 Returns the table name in which Ormlette stores this class's data.
 
-=method update
+=head2 update
 
 Updates the object's existing database record.  This method will fail if the
 object does not already exist in the database.
