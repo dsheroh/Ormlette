@@ -1,0 +1,7 @@
+Revision history for Ormlette
+
+0.002   2010-07-14
+        - Fixed build_requires; no change to the actual Ormlette code itself
+
+0.01    2010-07-12
+        - Initial release
