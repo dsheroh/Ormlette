@@ -3,7 +3,7 @@ package Ormlette;
 use strict;
 use warnings;
 
-our $VERSION = 0.001000;
+our $VERSION = 0.002000;
 
 use Carp;
 
