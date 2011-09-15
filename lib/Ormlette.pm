@@ -165,6 +165,7 @@ sub iterate {
   my \$sth = \$class->dbh->prepare_cached(\$sql);
   \$sth->execute(\@_);
 
+  local \$_;
   while (\$_ = \$class->_ormlette_load_from_sth(\$sth)) {
     \$callback->();
   }
