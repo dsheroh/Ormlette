@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More 'no_plan';
+use Test::More;
 use Test::Exception;
 
 use FindBin;
@@ -76,3 +76,39 @@ use Ormlette;
   is_deeply($egg->{tbl_names}, { }, 'empty tables param ignores everything');
 }
 
+# use 'isa' param to assign a parent to generated classes
+{
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do('CREATE TABLE isa_test (id integer)');
+
+  package Parent;
+  # Nothing here; just need the namespace to exist
+
+  package main;
+
+  my $egg = Ormlette->init($dbh, isa => 'Parent');
+  is_deeply([@main::IsaTest::ISA], ['Parent'], 'set @ISA with isa param');
+  my $isa_test = IsaTest->new;
+  isa_ok($isa_test, 'IsaTest', 'parented class is itself');
+  isa_ok($isa_test, 'Parent',  'parented class is descended from parent');
+}
+
+# don't overwrite @ISA if it's already set
+{
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do('CREATE TABLE save_parent (id integer)');
+  
+  package SaveParent;
+  our @ISA = qw( Parent );
+
+  package NotParent;
+  # Again, just need the name, no functionality
+
+  package main;
+
+  my $egg = Ormlette->init($dbh, isa => 'NotParent');
+  my $preserved = SaveParent->new;
+  isa_ok($preserved, 'Parent', 'pre-existing parent class preserved');
+}
+
+done_testing;

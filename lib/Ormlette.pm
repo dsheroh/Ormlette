@@ -3,7 +3,7 @@ package Ormlette;
 use strict;
 use warnings;
 
-our $VERSION = 0.003000;
+our $VERSION = 0.004;
 
 use Carp;
 
@@ -20,6 +20,7 @@ sub init {
   my $self = bless {
     dbh         => $dbh,
     debug       => $params{debug} ? 1 : 0,
+    isa         => $params{isa},
     namespace   => $namespace,
     readonly    => $params{readonly} ? 1 : 0,
     tbl_names   => $tbl_names,
@@ -103,7 +104,7 @@ sub _compile_pkg {
 sub _pkg_core {
   my ($self, $pkg_name) = @_;
 
-  return <<"END_CODE";
+  my $core = <<"END_CODE";
 package $pkg_name;
 
 use strict;
@@ -111,6 +112,19 @@ use warnings;
 
 use Carp;
 
+END_CODE
+
+  no strict 'refs';
+  if ($self->{isa} && !@{ $pkg_name . '::ISA' }) {
+    my $isa = $self->{isa};
+    $core .= <<"END_CODE";
+our \@ISA = '$isa';
+
+END_CODE
+  }
+  use strict 'refs';
+
+  $core .= <<"END_CODE";
 my \$_ormlette_dbh;
 
 sub dbh { \$_ormlette_dbh }
@@ -121,6 +135,8 @@ sub _ormlette_init {
 }
 
 END_CODE
+
+  return $core;
 }
 
 sub _root_methods {
@@ -429,6 +445,17 @@ connected to $dbh.  Recognized parameters:
 The C<debug> option will cause additional debugging information to be printed
 to STDERR as Ormlette does its initialization.  At this point, this consists
 solely of the generated source code for each package affected by Ormlette.
+
+=head3 isa
+
+Specifies that all Ormlette-generated classes should be made subclasses of
+the C<isa> package.  This is done by directly setting C<@ISA>, not via C<use
+base> or C<use parent>, so you are responsible for ensuring that the
+specified class is available to use as a parent.
+
+If Ormlette is adding to a class which already exists and already has a
+parent in C<@ISA>, the existing parent will be untouched and the C<isa> option
+will have no effect on that class.
 
 =head3 namespace
 
