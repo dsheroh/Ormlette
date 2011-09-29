@@ -49,6 +49,9 @@ sub _scan_tables {
   if ($params{tables}) {
     my %include = map { $_ => 1 } @{$params{tables}};
     @tables = grep { $include{$_} } @tables;
+  } elsif ($params{ignore_tables}) {
+    my %exclude = map { $_ => 1 } @{$params{ignore_tables}};
+    @tables = grep { !$exclude{$_} } @tables;
   }
 
   my %tbl_names;
@@ -465,6 +468,18 @@ generated code, providing access to the source database.  This is not always
 desirable.  In such cases, setting C<ignore_root> will prevent Ormlette from
 making any modifications to that package.
 
+=head3 ignore_tables
+
+Ormlette will normally generate classes corresponding to all tables found
+in the database.  If there are tables which should be skipped over, a
+reference to an array of table names to skip can be passed in the
+C<ignore_tables> parameter.
+
+If you prefer to list the tables to include rather than the tables to
+exclude, use C<tables>.  There should never be a reason to specify both
+C<tables> and C<ignore_tables>, but, if this is done, C<tables> will take
+precedence and C<ignore_tables> will be silently ignored.
+
 =head3 namespace
 
 By default, Ormlette will use the name of the package which calls C<init> as
@@ -482,6 +497,9 @@ methods will be created and generated accessors will be read-only.
 If you only require Ormlette code to be generated for some of the tables in
 your database, providing a reference to an array of table names in the
 C<tables> parameter will cause all other tables to be ignored.
+
+If you prefer to list the tables to exclude rather than those to include,
+use C<ignore_tables>.
 
 =back
 

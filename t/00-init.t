@@ -88,6 +88,20 @@ use Ormlette;
   is_deeply($egg->{tbl_names}, { }, 'empty tables param ignores everything');
 }
 
+# restrict list of packages touched using ignore_tables param
+{
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do('CREATE TABLE ormlify_me ( id integer )');
+  $dbh->do('CREATE TABLE ignore_me (id integer )');
+  my $egg = Ormlette->init($dbh, ignore_tables => ['ignore_me']);
+
+  is_deeply(
+    $egg->{tbl_names},
+    {ormlify_me => 'main::OrmlifyMe',},
+    'tables_ignore param causes listed tables to be ignored'
+  );
+}
+
 # use 'isa' param to assign a parent to generated classes
 {
   my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
