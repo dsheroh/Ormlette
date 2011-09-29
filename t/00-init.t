@@ -62,6 +62,18 @@ use Ormlette;
   }, 'override root ormlette namespace with namespace param');
 }
 
+# prevent modification of root namespace with ignore_root param
+{
+  package IgnoreRoot;
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do('CREATE TABLE ignore_root_test ( id integer )');
+  my $egg = Ormlette->init($dbh, ignore_root => 1);
+
+  package main;
+  dies_ok { IgnoreRoot->dbh }
+    'root namespace has no dbh method if ignore_root is set';
+}
+
 # restrict list of packages touched using tables param
 {
   my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');

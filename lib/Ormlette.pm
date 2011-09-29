@@ -20,13 +20,14 @@ sub init {
   my $self = bless {
     dbh         => $dbh,
     debug       => $params{debug} ? 1 : 0,
+    ignore_root => $params{ignore_root},
     isa         => $params{isa},
     namespace   => $namespace,
     readonly    => $params{readonly} ? 1 : 0,
     tbl_names   => $tbl_names,
   }, $class;
 
-  $self->_build_root_pkg;
+  $self->_build_root_pkg unless $self->{ignore_root};
   $self->_build_table_pkg($_) for keys %$tbl_names;
 
   return $self;
@@ -457,6 +458,13 @@ If Ormlette is adding to a class which already exists and already has a
 parent in C<@ISA>, the existing parent will be untouched and the C<isa> option
 will have no effect on that class.
 
+=head3 ignore_root
+
+Ormlette will normally inject a C<dbh> method into the base namespace of its
+generated code, providing access to the source database.  This is not always
+desirable.  In such cases, setting C<ignore_root> will prevent Ormlette from
+making any modifications to that package.
+
 =head3 namespace
 
 By default, Ormlette will use the name of the package which calls C<init> as
@@ -480,10 +488,14 @@ C<tables> parameter will cause all other tables to be ignored.
 =head2 dbh
 
 Returns the internal database handle used for database interaction.  Can be
-called on the core Ormlette object, the root namespace of its generated code,
-or any of the persistent classes generated in that namespace.
+called on the core Ormlette object, the root namespace of its generated code
+(unless the C<ignore_root> option is set when calling C<init>), or any of the
+persistent classes generated in that namespace.
 
 =head1 Root Namespace Methods
+
+If the C<ignore_root> option is set when calling C<init>, no methods will
+be generated in the root namespace.
 
 =head2 dbh
 
