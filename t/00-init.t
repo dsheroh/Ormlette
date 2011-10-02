@@ -123,7 +123,7 @@ use Ormlette;
 {
   my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
   $dbh->do('CREATE TABLE save_parent (id integer)');
-  
+
   package SaveParent;
   our @ISA = qw( Parent );
 
