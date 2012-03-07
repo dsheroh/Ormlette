@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More 'no_plan';
+use Test::More;
 use Test::Exception;
 
 use FindBin;
@@ -269,3 +269,4 @@ use Ormlette;
   dies_ok { $obj->truncate } '->truncate as instance method dies';
 }
 
+done_testing;
