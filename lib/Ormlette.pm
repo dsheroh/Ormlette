@@ -333,7 +333,6 @@ sub insert {
   my \$sth = \$self->dbh->prepare_cached(\$sql);
   \$sth->execute($insert_values);
   $handle_autoincrement
-  \$sth->finish;
   return \$self;
 }
 
@@ -358,7 +357,6 @@ sub update {
   my \$sql = 'UPDATE $tbl_name SET $update_fields WHERE $key_criteria';
   my \$sth = \$self->dbh->prepare_cached(\$sql);
   my \$changed = \$sth->execute($insert_values, $key_values);
-  \$sth->finish;
   \$self->insert unless \$changed > 0;
 
   return \$self;
