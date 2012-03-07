@@ -640,8 +640,8 @@ Returns the table name in which Ormlette stores this class's data.
 
 =head2 update
 
-Updates the object's existing database record.  This method will fail if the
-object does not already exist in the database.
+Updates the object's existing database record.  This method will implicitly
+call C<insert> if the object does not already exist in the database.
 
 This method will not be generated if C<readonly> is set or for tables which
 do not have a primary key.
