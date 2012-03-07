@@ -357,8 +357,9 @@ sub update {
   my \$self = shift;
   my \$sql = 'UPDATE $tbl_name SET $update_fields WHERE $key_criteria';
   my \$sth = \$self->dbh->prepare_cached(\$sql);
-  \$sth->execute($insert_values, $key_values);
+  my \$changed = \$sth->execute($insert_values, $key_values);
   \$sth->finish;
+  \$self->insert unless \$changed > 0;
 
   return \$self;
 }
@@ -395,6 +396,17 @@ END_CODE
     $code .= '
 sub new { my $class = shift; $class->_ormlette_new(@_); }
 ';
+  }
+
+  if (@key) {
+    my $destroy_name =
+      $pkg_name->can('DESTROY') ? '_ormlette_DESTROY' : 'DESTROY';
+    $code .= "
+sub mark_dirty { \$_[0]->{_dirty} = 1 }
+sub mark_clean { \$_[0]->{_dirty} = 0 }
+sub dirty      { return \$_[0]->{_dirty} }
+
+sub $destroy_name { \$_[0]->update if \$_[0]->{_dirty} }"
   }
 
   return $code;

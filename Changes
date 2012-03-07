@@ -1,5 +1,10 @@
 Revision history for Ormlette
 
+0.004   2012-03-07
+        - Reorganized test scripts
+        - Added basic testing for MySQL data store
+        - Added (optional) auto-update of dirty objects
+
 0.003   2011-10-02
         - Fixed bug allowing ->iterate to clobber its caller's $_
         - Added isa, ignore_root, and ignore_tables options to ->init
