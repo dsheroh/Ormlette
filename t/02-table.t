@@ -103,6 +103,9 @@ use Ormlette;
   undef $obj;
   $obj= Update::Keyed->load(42);
   is_deeply($obj, $reload, 'update of loaded object reloaded');
+
+  Update::Keyed->new(id => 13, my_txt => 'insert from update')->update;
+  ok(defined Update::Keyed->load(13), 'update implicitly inserts new object');
 }
 
 # construct and save with ->create
