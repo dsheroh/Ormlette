@@ -115,7 +115,7 @@ use Ormlette;
   my $egg = Ormlette->init($dbh, isa => 'Parent');
   is_deeply([@main::IsaTest::ISA], ['Parent'], 'set @ISA with isa param');
   my $isa_test = IsaTest->new;
-  isa_ok($isa_test, 'IsaTest', 'parented class is itself');
+  isa_ok($isa_test, 'main::IsaTest', 'parented class is itself');
   isa_ok($isa_test, 'Parent',  'parented class is descended from parent');
 }
 
