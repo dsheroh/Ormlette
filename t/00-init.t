@@ -38,6 +38,16 @@ use Ormlette;
   }, 'found all tables and built package names');
 }
 
+# use double-underscore for multi-level class structure
+{
+  my $dbh = DBI->connect('dbi:SQLite:dbname=:memory:', '', '');
+  $dbh->do('CREATE TABLE multi__level ( id integer )');
+  my $egg = Ormlette->init($dbh);
+  is_deeply($egg->{tbl_names}, {
+      multi__level => 'main::Multi::Level'
+  }, 'double underscore in table name gives multi-level package name');
+}
+
 # correctly identify root namespace
 {
   package Root;

@@ -56,7 +56,9 @@ sub _scan_tables {
 
   my %tbl_names;
   for (@tables) {
-    my @words = split '_', lc $_;
+    my $tbl = lc $_;
+    $tbl =~ s/__(.)/::\U$1/g;
+    my @words = split '_', $tbl;
     $tbl_names{$_} = $namespace . '::' . (join '', map { ucfirst } @words);
   }
 
